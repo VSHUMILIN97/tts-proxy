@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% load i18n %}
+{% load static %}
+{% load staticfiles %}
+{% block title %}IMEDGEN | Сервис генерации речи{% endblock %}
+{% block audiorecords %}
+<div class="landing">
+    <!--img class="logo-img" src="{% static 'images/logo.png' %}"-->
+    <h1 class="caption" id="capt">Customizable speech synthesis</h1>
+    <div class="description">
+        <p>Convert text into human-like speech in multiple voices and emotions</p>
+    </div>
+    <hr>
+    <div class="row">
+        <div class="column">
+            <div class="capt">
+                <img class="capt-icon" src="{% static 'images/mute.png' %}">
+                <div class="capt-text">Use Text-to-Speech to help disabled and handicapped people with communication</div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="capt">
+                <img class="capt-icon" src="{% static 'images/book.png' %}">
+                <div class="capt-text">Improve listening skills or check pronunciation while learning a new language</div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="capt">
+                <img class="capt-icon" src="{% static 'images/call.png' %}">
+                <div class="capt-text">Use synthesized speech to automate phone calls or speak out short text messages</div>
+            </div>
+        </div>
+    </div>
+    <div class="button-holder">
+        <form action="{% url 'core:projects' %}">
+            <button class="btn-try" type="submit">Check out projects</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

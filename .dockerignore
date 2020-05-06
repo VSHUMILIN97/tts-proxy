@@ -1,0 +1,10 @@
+data/
+logs/
+*env/
+*.log
+.gitlab-ci.yml
+*.sqlite3
+*.md
+fixtures/
+media/
+__pycache__/*

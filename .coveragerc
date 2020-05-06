@@ -1,0 +1,10 @@
+[run]
+omit =
+    *test/*
+    *tests/*
+    *migrations/*
+    *templates/*
+    settings.py
+
+[report]
+precision = 2

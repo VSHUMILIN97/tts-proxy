@@ -1,0 +1,62 @@
+{% load static %}
+{% load i18n %}
+{% load l10n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{% block title %}V1 ZULUL{% endblock %}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="{% static 'images/favicon.png' %}" type="image/png">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<!-- Load Vue.js -->
+    {% if debug %}
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    {% else %}
+        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    {% endif %}
+<!-- Load Bootstrap styles for BootstrapVue -->
+<script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+<link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+
+<!-- Load Vue followed by BootstrapVue -->
+
+<!-- Load axious -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<!-- Load own CSS -->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+
+{% block headload %}{% endblock %}
+</head>
+
+<body class="background">
+
+<div class="topnav" id="navbar">
+    <a href="{% url 'root-url' %}" class="logo"> </a>
+    <a href="{% url 'core:projects' %}" class="item fromLeft">Projects</a>
+    <a href="{% url 'core:audio-files' 'drafts'%}" class="item fromLeft">Drafts</a>
+    {% if view.kwargs.project %}
+    <a
+            href="{% url 'core:audio-files' view.kwargs.project%}"
+            class="item fromLeft"
+    >{% if PROJECT_NAME and PROJECT_NAME != 'MANUAL_EDIT' %}
+        {{ PROJECT_NAME }}:
+    {% endif %}Audios
+    </a>
+    {% endif %}
+    <a href="javascript:void(0);" class="lang">v. {{ PROJECT_VERSION }}</a>
+        </i>
+    </a>
+</div>
+
+<div class="container" id="cont">
+        {% block audiorecords %}{% endblock %}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}IMEDGEN | Projects{% endblock %}
+{% block audiorecords %}
+
+    <div id="describe-text">
+        <h1 class="projects-caption" id="prjcapt"
+            xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
+            Active projects live here
+            <b-badge pill variant="info">updated</b-badge>
+        </h1>
+    </div>
+
+<div class="projects-desc">
+    <p>This are an active projects at the moment.
+        Check out one of them to see which audio records are stored in it.
+    Alternatively, you can add your own project using the form below.</p>
+</div>
+<hr class="projects-hr">
+
+<div align="center" class="projects-table-container">
+
+    <div id="add-modal">
+
+    <b-button
+            v-b-modal.add-project-modal
+            variant="info"
+            size="sm"
+            block
+    >
+        Add project
+    </b-button>
+    <hr class="projects-hr">
+
+    <b-modal
+      id="add-project-modal"
+      ref="add-p-mod"
+      title="Add a new project"
+      @ok="handleOk"
+    >
+        <form ref="add-p-form" @submit.stop.prevent="handleSubmit">
+            <b-form-group
+              id="input-group-1"
+              label="Name:"
+              label-for="input-name"
+              placeholder="Feel free to use any letters and symbols"
+              description="Tip: Use Redmine project name"
+            >
+                <b-alert
+                        variant="danger"
+                        dismissible
+                        :show="errors.common_sh"
+                >
+                    [[errors.common]]
+                </b-alert>
+              <b-form-input
+                      id="input-name"
+                      v-model="form.name"
+                      required
+                      :state="nameState"
+                      placeholder="Enter project name"
+              ></b-form-input>
+                <b-alert
+                        variant="danger"
+                        dismissible
+                        :show="errors.name_sh"
+                >
+                    [[errors.name]]
+                </b-alert>
+            </b-form-group>
+
+            <b-form-group
+                    id="input-group-2"
+                    label="Project slug:"
+                    label-for="input-slug"
+                    description="Tip: Leave this field blank if you are
+                    not exactly sure what does it do"
+            >
+              <b-form-input
+                      id="input-slug"
+                      v-model="form.slug"
+                      placeholder="Enter project short name (i.e. slug)"
+              ></b-form-input>
+                <b-alert
+                        variant="danger"
+                        dismissible
+                        :show="errors.slug_sh"
+                >
+                    [[errors.slug]]
+                </b-alert>
+            </b-form-group>
+        </form>
+    </b-modal>
+
+    </div>
+
+    <div id="projects-dt" class="overflow-auto">
+    <b-pagination
+      v-model="currentPage"
+      :total-rows="rows"
+      :per-page="perPage"
+      aria-controls="projects-table"
+      align="right"
+    ></b-pagination>
+        <b-table
+                id="projects-table"
+                :striped="striped"
+                hover
+                :busy="isNotReady"
+                :fields="fields"
+                :items="projects"
+                caption-top
+                sort-icon-left
+                primary-key:="name"
+                @row-clicked="inspectProject"
+                responsive="sm"
+                :per-page="perPage"
+                :current-page="currentPage"
+        >
+        <template v-slot:table-busy>
+            <div class="text-center text-danger my-2">
+                <b-spinner class="align-middle"></b-spinner>
+            <strong>Loading...</strong>
+            </div>
+        </template>
+            <template v-slot:cell(settings)="row">
+                <b-button
+                        @click="inspectProject(row.item)"
+                        variant="outline-white"
+                >
+                    🛠
+                </b-button>
+            </template>
+            <template v-slot:cell(delete)="row">
+                <b-button
+                        @click="confirmDelete(row.item, row.index)"
+                        variant="info"
+                >
+                    Delete
+                </b-button>
+             </template>
+        </b-table>
+
+    </div>
+
+</div>
+        <script>
+        let currPage = (
+            window.location.protocol + '//' + window.location.host
+        );
+        let projectsListPath = "{% url 'api:projects-list' %}";
+        let projectsCreatePath = "{% url 'api:projects-make' %}";
+        let projectsDestroyPath = "{% url 'api:projects-destroy' '' %}";
+    </script>
+    <script src="{% static 'javascript/projects_core.js'%}"></script>
+    <!-- Implement margin block to have slight evaluate before audio records -->
+<div style="margin-bottom: 1.5%"></div>
+{% endblock %}

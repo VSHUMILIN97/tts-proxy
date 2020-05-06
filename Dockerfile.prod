@@ -1,0 +1,15 @@
+FROM python:3.7-slim-buster
+ARG TAG
+RUN apt-get update && apt-get install sox netcat \
+            python3.7-dev python-psycopg2 nginx ffmpeg  \
+            -y --no-install-recommends && \
+            rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PV_IMEDGEN=$TAG
+WORKDIR /opt/imedgen
+RUN mkdir -p /opt/imedgen/logs
+COPY . ./
+RUN pip install -r requirements.txt
+ENTRYPOINT ["/opt/imedgen/entries/app_entry.sh"]

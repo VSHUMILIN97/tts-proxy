@@ -1,0 +1,61 @@
+version: '3.4'
+services:
+    imedgen:
+        build:
+          context: .
+        ports:
+            - 8000:8000
+        env_file:
+          - environments/production.env
+          - environments/db_template.env
+        links:
+          - postgresql
+          - redis
+        command: gunicorn imedgen.wsgi:application -c guniconf.py
+        restart: on-failure
+        volumes:
+          - type: bind
+            source: ./media
+            target: /opt/imedgen/media
+          - type: bind
+            source: ./static
+            target: /opt/imedgen/static
+        depends_on:
+          - postgresql
+
+    postgresql:
+      image: postgres:11.5-alpine
+      ports:
+        - 5432:5432
+      env_file:
+        - environments/db_template.env
+      volumes:
+        - db_data:/var/lib/postgresql/data
+      restart: always
+
+    redis:
+      image: redis
+      ports:
+        - 6378:6379
+      restart: always
+
+    nginx:
+      build:
+        context: nginx/.
+      links:
+        - imedgen
+      ports:
+        - 5445:80
+      volumes:
+        - type: bind
+          source: ./media
+          target: /opt/imedgen/media
+        - type: bind
+          source: ./static
+          target: /opt/imedgen/static
+      depends_on:
+        - imedgen
+      restart: always
+
+volumes:
+  db_data:

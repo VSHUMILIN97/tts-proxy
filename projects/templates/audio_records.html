@@ -1,0 +1,613 @@
+{% extends 'base.html' %}
+
+{% load staticfiles %}
+{% block title%}IMEDGEN | Audios {% endblock %}
+{% block audiorecords %}
+<h1 class="projects-caption" id="prjcapt">Manage your audio files</h1>
+<div class="projects-desc">
+    <p>Generate new audio files. Look through, edit or download existing ones.</p>
+</div>
+<hr class="projects-hr">
+
+<div id="body-audio" class="projects-table-container">
+
+<script>
+let bodyContainer = $('#body-audio');
+bodyContainer.addClass('blur');
+</script>
+
+    <div id="audio-modal">
+
+            <!-- Button groups -->
+        <b-button-group class="btn-group d-flex">
+            <b-button
+                    v-b-modal.audio-modal
+                    variant="info"
+                    size="sm"
+                    flex
+                    pill
+                    class="border border-dark border-close border-close-margin"
+            >
+                Add audio record
+            </b-button>
+            <b-button
+                v-b-modal="'file-modal'"
+                variant="info"
+                size="sm"
+                flex
+                pill
+                class="border border-dark border-close"
+            >
+               Import file
+            </b-button>
+        </b-button-group>
+        <b-button-group class="btn-group d-flex">
+            <b-button
+                    variant="info"
+                    size="sm"
+                    flex
+                    pill
+                    href="{% url 'core:audio-analytics-ds' view.kwargs.project %}"
+                    class="
+                    border border-dark border-close
+                    border-close-margin
+                    text-decoration-none
+                    "
+            >
+                Download audio records data sheet
+            </b-button>
+            <b-button
+                variant="info"
+                size="sm"
+                flex
+                pill
+                href="{% url 'core:audio-media-lib' view.kwargs.project %}"
+                class="border border-dark border-close-margin border-close text-decoration-none"
+            >
+               Download IMED media library
+            </b-button>
+            <b-button
+                variant="info"
+                size="sm"
+                flex
+                pill
+                @click="$refs.importOwn.show()"
+                class="border border-dark border-close"
+            >
+                Import pre-recorded audio files
+            </b-button>
+        </b-button-group>
+        <b-modal
+                id="own-import"
+                ref="importOwn"
+                :busy="busyStateOwnImport"
+                title="Import own files"
+                size="xl"
+                @ok="submitToServer"
+                no-close-on-backdrop
+        >
+            <b-form @submit.stop.prevent="submitToServer">
+                <b-form-input
+                        v-model="importVoice"
+                        placeholder="Actor's voice"
+                        required
+                        type="search"
+                        size="lg"
+                        :disabled="busyState"
+                >
+                </b-form-input>
+            <b-form-file
+                    v-model="importOwn"
+                    ref="importown"
+                    multiple
+                    directory
+                    size="lg"
+                    accept=".mp3, .wav, .raw"
+                    placeholder="Choose files or directory or drop it here.."
+                    drop-placeholder="DROP ME HERE, SWEETHEART.."
+                    browse-text="Browse"
+                    required
+                    :disabled="busyState"
+                    >
+                  <template slot="file-name" slot-scope="{ names }">
+                    <b-badge variant="info">[[ names[0] ]]</b-badge>
+                    <b-badge v-if="names.length > 1" variant="dark" class="ml-1">
+                        + [[ names.length - 1 ]] More files
+                    </b-badge>
+                  </template>
+                </b-form-file>
+            </b-form>
+            <div
+                    class="d-flex justify-content-center mb-3"
+                    v-if="busyStateOwnImport === true"
+                    style="margin-top: 10px"
+            >
+                <b-spinner
+                        label="Loading..."
+                        variant="info"
+                ></b-spinner>
+            </div>
+            <div
+                    class="d-flex"
+                    v-if="importOwnReport === true"
+            >
+                <b-form-textarea
+                        v-model="importOwnReportText"
+                        rows="5"
+                        max-rows="12"
+                        plaintext
+                >
+                </b-form-textarea>
+            </div>
+
+        </b-modal>
+
+            <!-- Modal for file -->
+
+    <hr class="projects-hr">
+
+        <b-modal
+      id="file-modal"
+      ref="add-fl-mod"
+      title="Import file"
+      @ok="handleFileOK"
+      :busy="busyStateFile"
+      size="xl"
+      no-close-on-backdrop
+    >
+        <form ref="add-f-form" @submit.stop.prevent="handleFileSubmit">
+            <b-form-group
+              id="input-group-1"
+              label="File:"
+              label-for="input-file"
+              description="Tip: If you are not sure about import file format,
+               click on the dropdown menu"
+            >
+                  <b-form-file
+                          id="input-file"
+                          v-model="file"
+                          required
+                          accept="
+                          application/vnd.ms-excel,
+                          text/csv,
+                          text/plain,
+                          text/xml,
+                          .imed,
+                          .xlsx,
+                          .xls,
+                          .csv
+                          "
+                          size="lg"
+                          :state="Boolean(file)"
+                          placeholder="Choose a file or drop it here.."
+                          drop-placeholder="DROP ME HERE, SWEETHEART.."
+                          browse-text="Browse"
+                          :disabled="busyState"
+                  ></b-form-file>
+                <b-input-group-append>
+                    <b-dropdown
+                            id="dropdown-1"
+                            variant="outline-info"
+                            class="m-md-2 border-close"
+                            text="Stuck? Get the example file"
+                            lazy
+                    >
+                        <b-dropdown-item
+                                href="{% url 'core:utils-export-example' %}"
+                        >
+                            Download CSV example
+                        </b-dropdown-item>
+                        <b-dropdown-item
+                                href="{% static 'helpers/imedgen-export-example.xlsx' %}"
+                        >
+                            Download Excel example
+                        </b-dropdown-item>
+                        <b-dropdown-item disabled>
+                            Live demo (WIP)
+                        </b-dropdown-item>
+                    </b-dropdown>
+                </b-input-group-append>
+            </b-form-group>
+
+            <b-form-group label="Choose TTS source" label-for="radio-group-tts">
+                <b-form-radio-group
+                    id="radio-group-tts"
+                    v-model="tts"
+                    :options="ttsSources"
+                    name="radio-tts"
+                    buttons
+                    button-variant="outline-info"
+                    size="sm"
+                    @input="changeTTSSource"
+                    :disabled="busyState"
+                    ></b-form-radio-group>
+            </b-form-group>
+            <label for="range-2">Pick correct playing speed</label>
+            <b-form-input
+                    id="range-2"
+                    v-model="speed"
+                    type="range"
+                    min="0.1"
+                    max="3"
+                    step="0.1"
+                    :disabled="busyState"
+            >
+            </b-form-input>
+            <div class="mt-2">Playing speed: [[ speed ]]</div>
+            <b-form-group label="Choose source voice actor" label-for="sel-voice">
+                <b-form-select
+                        v-model="voice"
+                        :options="voicesList"
+                        id="sel-voice"
+                        :disabled="busyState"
+                >
+                </b-form-select>
+            </b-form-group>
+            <b-form-group
+                    label="Choose source voice actor emotion"
+                    label-for="sel-voice"
+                    v-if="emotionList.length > 0"
+            >
+                <b-form-select
+                        v-model="emotion"
+                        :options="emotionList"
+                        id="sel-emotion"
+                        :disabled="busyState"
+                >
+                </b-form-select>
+            </b-form-group>
+        </form>
+        <div
+                class="d-flex justify-content-center mb-3"
+                v-if="busyState === true"
+        >
+            <b-spinner
+                    label="Loading..."
+            ></b-spinner>
+        </div>
+    </b-modal>
+
+        <!-- Modal for single audio record creation -->
+
+    <b-modal
+      id="audio-modal"
+      ref="add-am-mod"
+      title="Add a new audio record"
+      @ok="handleOk"
+      :busy="busyState"
+      size="xl"
+      no-close-on-backdrop
+    >
+        <form ref="add-p-form" @submit.stop.prevent="handleSubmit">
+            <b-form-group
+              id="input-group-1"
+              label="Name:"
+              label-for="input-name"
+              description="Tip: Do not use / or spaces"
+            >
+              <b-form-input
+                      id="input-name"
+                      v-model="form.name"
+                      required
+                      :state="nameState"
+                      :disabled="busyState"
+                      placeholder="Feel free to use cyrillic symbols"
+              ></b-form-input>
+                <b-alert
+                        variant="danger"
+                        dismissible
+                        :show="errors.name_sh"
+                >
+                    [[errors.name]]
+                </b-alert>
+            </b-form-group>
+
+            <b-form-group
+                    id="input-group-2"
+                    label="Text:"
+                    label-for="input-text"
+                    description="Do not use unknown unicode symbols (™ or etc.)"
+            >
+              <b-form-textarea
+                      id="input-text"
+                      v-model="form.text"
+                      required
+                      rows="3"
+                      max-rows="15"
+                      :state="textState"
+                      placeholder="Enter text for synthesis.."
+                      :disabled="busyState"
+              ></b-form-textarea>
+                <b-alert
+                        variant="danger"
+                        dismissible
+                        :show="errors.text_sh"
+                >
+                    [[errors.text]]
+                </b-alert>
+            </b-form-group>
+
+            <b-form-group label="Choose TTS source" label-for="radio-group-tts">
+                <b-form-radio-group
+                    id="radio-group-tts"
+                    v-model="tts"
+                    :options="ttsSources"
+                    name="radio-tts"
+                    buttons
+                    button-variant="outline-info mr-2"
+                    size="sm"
+                    @input="changeTTSSource"
+                    :disabled="busyState"
+                    ></b-form-radio-group>
+            </b-form-group>
+            <label for="range-2">Pick correct playing speed</label>
+            <b-form-input
+                    id="range-2"
+                    v-model="speed"
+                    type="range"
+                    min="0.1"
+                    max="3"
+                    step="0.1"
+                    :disabled="busyState"
+            ></b-form-input>
+            <div class="mt-2">Playing speed: [[ speed ]]</div>
+            <b-form-group label="Choose source voice actor" label-for="sel-voice">
+                <b-form-select
+                        v-model="voice"
+                        :options="voicesList"
+                        id="sel-voice"
+                        :disabled="busyState"
+                >
+                </b-form-select>
+            </b-form-group>
+            <b-form-group
+                    label="Choose source voice actor emotion"
+                    label-for="sel-emotion"
+                    v-if="emotionList.length > 0"
+            >
+                <b-form-select
+                        v-model="emotion"
+                        :options="emotionList"
+                        id="sel-emotion"
+                        :disabled="busyState"
+                >
+                </b-form-select>
+            </b-form-group>
+        </form>
+        <div class="d-flex justify-content-center mb-3" v-if="busyState === true">
+            <b-spinner
+                    label="Loading..."
+            ></b-spinner>
+        </div>
+    </b-modal>
+
+    </div>
+
+    <!-- Modal for editing audio record -->
+    <div id="edit-audio-record">
+            <b-modal
+      id="audio-modal-edit"
+      ref="edit-am-mod"
+      title="Edit audio record"
+      @ok="handleOk"
+      :busy="busyState"
+      size="xl"
+      no-close-on-backdrop
+    >
+        <form
+                ref="edit-p-form"
+                @submit.stop.prevent="handleSubmit"
+        >
+            <b-form-group
+              id="input-group-edit-1"
+              label="Name:"
+              label-for="input-name-edit"
+              description="Tip: Do not use / or spaces"
+            >
+              <b-form-input
+                      id="input-name-edit"
+                      v-model="name"
+                      required
+                      :disabled="true"
+                      placeholder="Feel free to use cyrillic symbols"
+              ></b-form-input>
+            </b-form-group>
+
+            <b-form-group
+                    id="input-group-edit-2"
+                    label="Text:"
+                    label-for="input-text-edit"
+                    description="Avoid to use unknown unicode symbols (™ or etc.)"
+            >
+              <b-form-textarea
+                      id="input-text-edit"
+                      v-model="text"
+                      required
+                      rows="3"
+                      max-rows="15"
+                      :state="textState"
+                      placeholder="Enter text for synthesis.."
+                      :disabled="busyState"
+              ></b-form-textarea>
+                <b-alert
+                        variant="danger"
+                        dismissible
+                        :show="errors.text_sh"
+                >
+                    [[errors.text]]
+                </b-alert>
+            </b-form-group>
+
+            <b-form-group label="Choose TTS source" label-for="radio-group-tts-edit">
+                <b-form-radio-group
+                    id="radio-group-tts-edit"
+                    v-model="tts"
+                    :options="ttsSources"
+                    name="radio-tts"
+                    buttons
+                    button-variant="outline-info"
+                    size="sm"
+                    @input="changeTTSSource"
+                    :disabled="busyState"
+                    ></b-form-radio-group>
+            </b-form-group>
+            <label for="range-2-edit">Pick correct playing speed</label>
+            <b-form-input
+                    id="range-2-edit"
+                    v-model="speed"
+                    type="range"
+                    min="0.1"
+                    max="3"
+                    step="0.1"
+                    :disabled="busyState"
+            ></b-form-input>
+            <div class="mt-2">Playing speed: [[ speed ]]</div>
+            <b-form-group label="Choose source voice actor" label-for="sel-voice-edit">
+                <b-form-select
+                        v-model="voice"
+                        :options="voicesList"
+                        id="sel-voice-edit"
+                        :disabled="busyState"
+                >
+                </b-form-select>
+            </b-form-group>
+            <b-form-group
+                    label="Choose source voice actor emotion"
+                    label-for="sel-emotion-edit"
+                    v-if="emotionList.length > 0"
+            >
+                <b-form-select
+                        v-model="emotion"
+                        :options="emotionList"
+                        id="sel-emotion-edit"
+                        :disabled="busyState"
+                >
+                </b-form-select>
+            </b-form-group>
+        </form>
+        <div class="d-flex justify-content-center mb-3" v-if="busyState === true">
+            <b-spinner
+                    label="Loading..."
+            ></b-spinner>
+        </div>
+    </b-modal>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div id="audios-dt" class="overflow-auto">
+    <b-pagination
+      v-model="currentPage"
+      :total-rows="rows"
+      :per-page="perPage"
+      align="right"
+      class="pagination-sm"
+      active="false"
+    ></b-pagination>
+        <b-table
+                id="projects-table"
+                :striped="striped"
+                hover
+                :busy="isNotReady"
+                :fields="fields"
+                :items="audioRecordArray"
+                caption-top
+                sort-icon-left
+                primary-key:="name"
+                @row-clicked="showDetails"
+                responsive="sm"
+                :per-page="perPage"
+                :current-page="currentPage"
+        >
+        <template v-slot:table-busy>
+            <div class="text-center text-danger my-2">
+                <b-spinner class="align-middle"></b-spinner>
+            <strong>Loading...</strong>
+            </div>
+        </template>
+            <template v-slot:cell(audio)="row">
+                <audio :src="row.item.audio" controls></audio>
+            </template>
+            <template v-slot:cell(source)="data">
+                <span>[[data.item.source]]</span>
+            </template>
+            <template v-slot:cell(voice)="data">
+                <span>[[data.item.voice]]</span>
+            </template>
+            <template v-slot:cell(speed)="data">
+                <span>[[data.item.playing_speed]]</span>
+            </template>
+            <template v-slot:cell(emotion)="data">
+                <span>[[data.item.emote]]</span>
+            </template>
+            <template v-slot:cell(settings)="row">
+                <b-button
+                        @click="showDetails(row.item)"
+                        variant="outline-white"
+                >
+                    🛠
+                </b-button>
+            </template>
+            <template v-slot:row-details="row">
+                <div>
+                    <b-button-toolbar aria-label="Toolbar with button groups and dropdown menu">
+                      <b-button-group class="mx-2">
+                          <b-button
+                                  squared
+                                  style="margin-right: 2px"
+                                  variant="info"
+                                  @click="openEditModal(row)"
+                          >
+                              Edit
+                          </b-button>
+                          <b-button
+                                  squared
+                                  style="margin-right: 2px"
+                                  class="text-decoration-none"
+                                  variant="info"
+                                  :href="row.item.audio"
+                          >
+
+                              Download WAV
+                          </b-button>
+                          <b-button
+                                  squared
+                                  @click="confirmDelete(row.item, row.index)"
+                                  variant="danger">
+
+                              Delete
+                          </b-button>
+                      </b-button-group>
+                    </b-button-toolbar>
+                </div>
+            </template>
+        </b-table>
+        <b-pagination
+                v-model="currentPage"
+                :total-rows="rows"
+                :per-page="perPage"
+                align="right"
+                class="pagination-sm"
+                active="false"
+                v-if="rows - ((currentPage - 1) * perPage) > 10"
+        ></b-pagination>
+    </div>
+
+</div>
+    <script>
+    let audioRecordListPath = "{% url 'api:audio-records-list' view.kwargs.project %}";
+    const yaURI = "{% url 'api:audio-make-yandex' view.kwargs.project %}";
+    const crtURI = "{% url 'api:audio-make-crt' view.kwargs.project %}";
+    const audioDestroyURI = "{% url 'api:audio-destroy' view.kwargs.project '' %}";
+    const sourcesURI = "{% url 'api:synth-sources' %}";
+    const fileImportURI = "{% url 'api:audio-file-import' view.kwargs.project %}";
+    const editAudioURI = "{% url 'api:audio-update' view.kwargs.project '' %}";
+    const importOwnURI = "{% url 'api:audio-own-import' view.kwargs.project %}"
+    </script>
+
+
+{% load staticfiles %}
+    {% load static %}
+        <script src="{% static 'javascript/audiorecords.js' %}" type="text/javascript">
+        </script>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/overrides.css' %}">
+{% endblock %}
